@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import QueuePool, create_engine
 from dotenv import load_dotenv
