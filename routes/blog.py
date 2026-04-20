@@ -74,7 +74,7 @@ async def update_blog_ui(request: Request, id: int, conn = Depends(context_get_c
         context = {"blog": blog}
     )
     
-@router.post("/modify/{id}")
+@router.put("/modify/{id}")
 async def update_blog(request: Request, id: int
                 , title = Form(min_length=2, max_length=200)
                 , author = Form(max_length=100)
@@ -99,3 +99,11 @@ async def delete_blog(request: Request, id: int
     await blog_svc.delete_blog(conn=conn, id=id, image_loc=blog.image_loc)
     return JSONResponse(content="메시지가 삭제되었습니다", status_code=status.HTTP_200_OK)
     # return RedirectResponse("/blogs", status_code=status.HTTP_302_FOUND)
+
+@router.get("/show_json/{id}")
+async def get_blog_by_json(request: Request, id: int,
+                   conn: Connection = Depends(context_get_conn)):
+    blog = await blog_svc.get_blog_by_id(conn, id)
+    blog.content = util.newlint_to_br(blog.content)
+
+    return blog
