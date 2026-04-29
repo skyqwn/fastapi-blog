@@ -1,4 +1,4 @@
-from fastapi import status
+from fastapi import Request, status
 from fastapi.exceptions import HTTPException
 from schemas.auth_schema import UserData, UserDataPASS
 from sqlalchemy import text, Connection
@@ -82,5 +82,24 @@ async def register_user(conn: Connection, name: str, email:str, hashed_password:
         await conn.rollback()
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                             detail="요청하신 서비스가 잠시 내부적으로 문제가 발생하였습니다.")
+
+def get_session(request: Request):
+    return request.session
+
+def get_session_user_opt(request: Request):
+    if "session_user" in request.session.keys():
+        return request.session["session_user"]
     
-# async def register_user_check()
+
+def get_session_user_prt(request: Request):
+    if "session_user" not in request.session.keys():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="해당 서비스는 로그인이 필요합니다.")
+    return request.session["session_user"]
+
+def check_valid_auth(session_user: dict, blog_author_id: int, blog_email: str):
+    if session_user is None:
+        return False
+    if ((session_user["id"] == blog_author_id) and (session_user["email"] == blog_email)):
+        return True
+    return False

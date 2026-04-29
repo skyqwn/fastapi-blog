@@ -13,11 +13,12 @@ class Blog(BlogInput):
     id: int
     modified_dt: datetime
 
-@dataclass
-class BlogData:
+class BlogData(BaseModel):
     id: int
     title: str
-    author: str
+    author_id: int
+    author: str | None = None
+    email: str | None = None
     content: str
     modified_dt: datetime
     image_loc: str | None = None

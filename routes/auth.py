@@ -58,7 +58,8 @@ async def login_ui(request: Request):
     )
 
 @router.post("/login")
-async def login(email: EmailStr = Form(...),
+async def login(request: Request,
+                email: EmailStr = Form(...),
                 password: str = Form(min_length=2, max_length=30),
                 conn: Connection = Depends(context_get_conn)):
     # 입력 email로 db에 사용자가 등록되어 있는지 확인. 
@@ -72,25 +73,15 @@ async def login(email: EmailStr = Form(...),
     if not is_correct_pw:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="등록하신 이메일과 패스워드 정보가 입력 정보와 다릅니다.")
-    
+    request.session["session_user"] = {"id": userpass.id, "name": userpass.name,
+                                       "email": userpass.email }
+    # print("request.session:", request.session)
     return RedirectResponse("/blogs", status_code=status.HTTP_302_FOUND)
-    
 
-    
-    
-    
-    
-
-    
-    
-
-
-
-
-
-    
-    
-                            
+@router.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/blogs", status_code=status.HTTP_302_FOUND)
 
 
 

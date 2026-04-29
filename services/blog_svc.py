@@ -17,19 +17,21 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR")
 async def get_all_blogs(conn: Connection) -> List:
     try:
         query = """
-        SELECT id, title, author, content, 
-            CASE 
-                WHEN image_loc IS NULL THEN '/static/default/blog_default.png'
-                ELSE image_loc 
-            END AS image_loc,
-            modified_dt 
-        FROM blog;
+        SELECT a.id, title, author_id, b.name as author, b.email as email, content, 
+        case when image_loc is null then '/static/default/blog_default.png'
+             else image_loc end as image_loc
+        , modified_dt 
+        FROM blog a
+          join user b on a.author_id = b.id
+        order by modified_dt desc;
         """
         # image_loc is Null => '/static/default/blog_default.png'
         result = await conn.execute(text(query))
         all_blogs = [BlogData(id=row.id,
               title=row.title,
+              author_id=row.author_id,
               author=row.author,
+              email=row.email,
               content=util.truncate_text(row.content),
               image_loc=row.image_loc, 
               modified_dt=row.modified_dt) for row in result]
@@ -48,8 +50,11 @@ async def get_all_blogs(conn: Connection) -> List:
 async def get_blog_by_id(conn: Connection, id: int):
     try:
         query = f"""
-        SELECT id, title, author, content, image_loc, modified_dt from blog
-        where id = :id
+        SELECT a.id, title, author_id, b.name as author, b.email as email, 
+        content, image_loc, modified_dt 
+        from blog a
+            join user b on a.author_id = b.id
+        where a.id = :id
         """
         stmt = text(query)
         bind_stmt = stmt.bindparams(id=id)
@@ -60,9 +65,10 @@ async def get_blog_by_id(conn: Connection, id: int):
                                 detail=f"해당 id {id}는(은) 존재하지 않습니다.")
 
         row = result.fetchone()
-        blog = BlogData(id=row[0], title=row[1], author=row[2], 
-                        content=row[3],
-                        image_loc=row[4], modified_dt=row[5])
+        blog = BlogData(id=row.id, title=row.title, author_id=row.author_id, 
+                        author=row.author, email=row.email,
+                        content=row.content,
+                        image_loc=row.image_loc, modified_dt=row.modified_dt)
         if blog.image_loc is None:
             blog.image_loc = '/static/default/blog_default.png'
 
@@ -97,11 +103,11 @@ async def upload_file(author: str, imagefile: UploadFile = None):
                             detail="이미지 파일이 제대로 Upload되지 않았습니다.")
     
 
-async def create_blog(conn: Connection, title: str, author: str, content: str, image_loc = None):
+async def create_blog(conn: Connection, title: str, author_id: int, content: str, image_loc = None):
     try:
         query = f"""
-        INSERT INTO blog(title, author, content, image_loc, modified_dt)
-        values ('{title}', '{author}', '{content}', {util.none_to_null(image_loc, is_squote=True)} , now())
+        INSERT INTO blog(title, author_id, content, image_loc, modified_dt)
+        values ('{title}', {author_id}, '{content}', {util.none_to_null(image_loc, is_squote=True)} , now())
         """
 
         await conn.execute(text(query))
@@ -113,18 +119,22 @@ async def create_blog(conn: Connection, title: str, author: str, content: str, i
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="요청데이터가 제대로 전달되지 않았습니다. ")
     
-async def update_blog(conn: Connection, id: int, title: str, author: str, 
-                content: str, image_loc: str = None):
+async def update_blog(conn: Connection, 
+                    id: int, 
+                    title: str,
+                    content: str, 
+                    image_loc: str = None):
     
     try:
         query = f"""
         UPDATE blog
-        SET title = :title, author= :author, content= :content,
+        SET title = :title, content= :content,
         image_loc = :image_loc
         WHERE id = :id
         """
-        bind_stmt = text(query).bindparams(id=id, title=title, author=author, 
-                                           content=content, image_loc = image_loc)
+        bind_stmt = text(query).bindparams(id=id, title=title,
+                                           content=content, 
+                                           image_loc = image_loc)
 
         result = await conn.execute(bind_stmt)
 
