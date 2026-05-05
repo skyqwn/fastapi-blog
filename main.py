@@ -23,7 +23,10 @@ app.add_middleware(CORSMiddleware,
 
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=3600)
+# app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=3600)
+
+app.add_middleware(middleware.MethodOverrideMiddleware)
+app.add_middleware(middleware.RedisSessionMiddleware)
 
 app.include_router(blog.router)
 app.include_router(auth.router)

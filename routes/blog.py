@@ -38,6 +38,9 @@ async def get_blog_by_id(request: Request, id: int,
                                               blog_author_id=blog.author_id,
                                               blog_email=blog.email)
     
+    if session_user:
+        session_user['lastviewed_blog_id'] = blog.id
+    
     
 
     return templates.TemplateResponse(

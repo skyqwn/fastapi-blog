@@ -73,14 +73,14 @@ async def login(request: Request,
     if not is_correct_pw:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="등록하신 이메일과 패스워드 정보가 입력 정보와 다릅니다.")
-    request.session["session_user"] = {"id": userpass.id, "name": userpass.name,
+    request.state.session["session_user"] = {"id": userpass.id, "name": userpass.name,
                                        "email": userpass.email }
     # print("request.session:", request.session)
     return RedirectResponse("/blogs", status_code=status.HTTP_302_FOUND)
 
 @router.get("/logout")
 async def logout(request: Request):
-    request.session.clear()
+    request.state.session.clear()
     return RedirectResponse("/blogs", status_code=status.HTTP_302_FOUND)
 
 
